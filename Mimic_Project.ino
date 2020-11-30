@@ -2,6 +2,8 @@
 #define speakerPin 5 //the pin for the piezo speaker(PMW)
 
 
+//The arm's mode {Learning mode, auto mode, custom mode}
+
 
 void setup() {
 
