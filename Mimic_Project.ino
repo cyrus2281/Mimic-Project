@@ -6,7 +6,8 @@
 #define ledRedPin 6     //RGB led pins (red)
 #define ledGreenPin 7   //RGB led pins (green)
 #define ledBluePin 8    //RGB led pins (blue)
-#define fluxSensor A2   //Flux sensor pin (analog)
+
+#define flexPin A2   //Flux sensor pin (analog)
 
 //The arm's mode {Manual mode, Learning mode, auto mode}
 volatile boolean modeMan = true;    //this switch mode between manual and learning
@@ -24,13 +25,20 @@ int learnt[numberOfServos][numberOfRecordings];  //an array that stores the move
 const int learntDefault = 45;                    //default value for learnt
 
 //servo motor configurations
-Servo servo1;     //base servo  (horizental move)
-Servo servo2;     //first node  (vertical   move)
-Servo servo3;     //second node (verrical   move)
-Servo servo4;     //claw servo  (horizental move)
+Servo servos[4];     //[0]:base servo (horizental move), [1]:first node (vertical move), [2]:second node (verrical move), [3]:claw servo (horizental move)
+int servoPins[] = {13, 12, 11, 10};
 
-//inputs from the hand
-
+//inputs from the gyroscope sensor
+struct gypSensor {
+  int x_position;
+  int y_position;
+  int z_posotion;
+  int x_acceleration;
+  int y_acceleration;
+  int z_acceleration;
+};
+//creating a structure for the gyroscope sensor
+gypSensor gypValues;
 
 void setup() {
   //Starting serial communications
@@ -42,6 +50,11 @@ void setup() {
   pinMode(ledRedPin,   OUTPUT);
   pinMode(ledGreenPin, OUTPUT);
   pinMode(ledBluePin,  OUTPUT);
+
+  //Attaching servo pin
+  for (int i = 0; i < sizeof(servoPins); i++) {
+    servos[i].attach(servoPins[i]);
+  }
 
   //setting default values for learnt
   for (int i = 0; i < numberOfServos; i++) {
@@ -61,15 +74,18 @@ void loop() {
   if (modeMan) {
     speakerToneThree(); //indicating change in mode
     rgbLed('r'); //color coding the mode, Manual red
+    Serial.println("RGB LED color set to red");
     //setting the inputs
 
   }
+    /* Learning not implemented yet 
   else {
     //----------------------------------------------------------------------
     //Automatic Mode
     if (modeAuto) {
       speakerToneThree(); //indicating change in mode
       rgbLed('b'); //color coding the mode, auto blue
+      Serial.println("RGB LED color set to blue");
       //mimicing what was previously learnt
       for ( int counter = 0; counter < numberOfRecordings; counter++) {
         //setting the inputs
@@ -81,6 +97,7 @@ void loop() {
     else {
       speakerToneThree(); //indicating change in mode
       rgbLed('g'); //color coding the mode, learning green
+      Serial.println("RGB LED color set to green");
       //starting the learning
       for ( int counter = 0; counter < numberOfRecordings; counter++) {
         //getting the inputs
@@ -88,9 +105,10 @@ void loop() {
       }
       speakerToneTwo(); //speaker indicating the learning is over
       modeAuto = true;
+      delay(3000);
     }
   }
-
+  //Learning not implemented yet */
   delay(50);
 }//end of void loop
 
@@ -110,6 +128,16 @@ void ISR0() {
   attachInterrupt(0, ISR0, RISING);
 }
 
+//flex sensor input method
+int flexSensor() {
+  int flexInput = analogRead(flexPin);
+  return map(flexInput, 800, 1023, 0, 179);
+}
+//Gyroscope Sensor input method
+void gypSensor() {
+
+}
+
 //a method for the rgb led color settings
 void rgbLed(char color) {
   digitalWrite(ledRedPin, LOW);
@@ -117,15 +145,12 @@ void rgbLed(char color) {
   digitalWrite(ledBluePin, LOW);
   switch (color) {
     case 'r':
-      Serial.println("RGB LED color set to red");
       digitalWrite(ledRedPin, HIGH);
       break;
     case 'g':
-      Serial.println("RGB LED color set to green");
       digitalWrite(ledGreenPin, HIGH);
       break;
     case 'b':
-      Serial.println("RGB LED color set to blue");
       digitalWrite(ledBluePin, HIGH);
       break;
   }
