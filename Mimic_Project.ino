@@ -29,7 +29,7 @@ Servo servos[4];     //[0]:base servo (horizental move), [1]:first node (vertica
 int servoPins[] = {13, 12, 11, 10};
 
 //inputs from the gyroscope sensor
-struct gypSensor {
+struct gyroSensor {
   int x_position;
   int y_position;
   int z_posotion;
@@ -38,7 +38,7 @@ struct gypSensor {
   int z_acceleration;
 };
 //creating a structure for the gyroscope sensor
-gypSensor gypValues;
+gyroSensor gyroValues;
 
 void setup() {
   //Starting serial communications
@@ -110,7 +110,7 @@ void loop() {
   }
   //Learning not implemented yet */
   delay(50);
-}//end of void loop
+}//end of void loop 
 
 
 //intterupt Zero (ISR0)
@@ -134,7 +134,7 @@ int flexSensor() {
   return map(flexInput, 800, 1023, 0, 179);
 }
 //Gyroscope Sensor input method
-void gypSensor() {
+void gyroSensor() {
 
 }
 
