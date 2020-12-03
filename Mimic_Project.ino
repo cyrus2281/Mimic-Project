@@ -3,12 +3,14 @@
 #include <Wire.h>
 
 //Declaring the I/O pins
-#define speakerPin 5    //the pin for the piezo speaker(PMW)
-#define ledRedPin 6     //RGB led pins (red)
+#define speakerPin  3   //the pin for the piezo speaker(PMW)
+#define ledRedPin   4   //RGB led pins (red)
 #define ledGreenPin 7   //RGB led pins (green)
-#define ledBluePin 8    //RGB led pins (blue)
+#define ledBluePin  8   //RGB led pins (blue)
 
-#define flexPin A2   //Flux sensor pin (analog)
+#define flexPin A0   //Flux sensor pin (analog)
+
+int flexValue;
 
 //The arm's mode {Manual mode, Learning mode, auto mode}
 volatile boolean modeMan = true;    //this switch mode between manual and learning
@@ -26,13 +28,15 @@ int learnt[numberOfServos][numberOfRecordings];  //an array that stores the move
 const int learntDefault = 45;                    //default value for learnt
 
 //servo motor configurations
-Servo servos[4];     //[0]:base servo (horizental move), [1]:first node (vertical move), [2]:second node (verrical move), [3]:claw servo (horizental move)
-int servoPins[] = {13, 12, 11, 10};
+Servo servos[5];     //[0]:base servo (horizental move), [1]:first node (vertical move), [2]:second node (verrical move),
+//[3]: claw tilt (horizental move) [4]:claw servo (horizental move)
+int servoPins[] = {11, 10, 9, 6, 5};
 
 //The structure for the final outputs of gyroscope sensor
 struct gyroSensor {
   float roll;
-  float pitch;
+  float pitchOne;
+  float pitchTwo;
   float yaw;
 
 };
@@ -40,25 +44,21 @@ struct gyroSensor {
 gyroSensor gyroValues;
 
 //gyroscope sensor needed variables
-const int MPU = 0x68; // MPU6050 I2C address
-float AccX, AccY, AccZ;  //to record the accelaration values from sensor
-float GyroX, GyroY, GyroZ;  //to record the gyroscope values from sensor
+const int MPU = 0x68;                                           // MPU6050 I2C address
+float AccX, AccY, AccZ;                                         //to record the accelaration values from sensor
+float GyroX, GyroY, GyroZ;                                      //to record the gyroscope values from sensor
 float accAngleX, accAngleY, gyroAngleX, gyroAngleY, gyroAngleZ; //to record the calculated angles from the sensor
-float AccErrorX, AccErrorY, GyroErrorX, GyroErrorY, GyroErrorZ;  //to record the IMU errors
-float elapsedTime, currentTime, previousTime;  //to record times between happenings
-int c = 0; //a variable that holds the number of test runs
-
-
-
-//----------------------------------------------------------------------
-
+float AccErrorX, AccErrorY, GyroErrorX, GyroErrorY, GyroErrorZ; //to record the IMU errors
+float elapsedTime, currentTime, previousTime;                   //to record times between happenings
+float yaw, roll, pitch;                                         //the final outputs before mapping for servos
+int errorCounter = 0;                                           //a variable that holds the number of test runs
 
 
 
 void setup() {
   //Starting serial communications
   Serial.begin(19200);
-  Serial.println("Starting...");
+  Serial.println(" Starting...");
 
   //setting the I/O pin mode
   pinMode(speakerPin,  OUTPUT);
@@ -70,19 +70,23 @@ void setup() {
   for (int i = 0; i < sizeof(servoPins); i++) {
     servos[i].attach(servoPins[i]);
   }
-  //----------------------------------------------------------------------
-  Serial.begin(19200);
+
+  //Setting up the gyroscope sensor
   Wire.begin();                      // Initialize comunication
   Wire.beginTransmission(MPU);       // Start communication with MPU6050 // MPU=0x68
   Wire.write(0x6B);                  // Talk to the register 6B
   Wire.write(0x00);                  // Make reset - place a 0 into the 6B register
   Wire.endTransmission(true);        //end the transmission
-  // Call this function if you need to get the IMU error values for your module
+  //this function get the IMU error values for module
   calculate_IMU_error();
   delay(20);
 
-
-  //----------------------------------------------------------------------
+  //intitial values for sensor values
+  gyroValues.yaw = 90;       //base servo
+  gyroValues.pitchOne = 90;  //node one
+  gyroValues.pitchTwo = 90;  //node two
+  gyroValues.roll = 90;      //claw tilt
+  flexValue = 90;            //claw
 
   //setting default values for learnt
   for (int i = 0; i < numberOfServos; i++) {
@@ -90,8 +94,8 @@ void setup() {
       learnt[i][j] = learntDefault;
     }
   }
-  attachInterrupt(0, ISR0, RISING); //attaching an interrupt for changing mode
-  Serial.print("Ready!");
+  //attachInterrupt(0, ISR0, RISING); //attaching an interrupt for changing mode
+  Serial.println("Ready!");
   speakerToneOne();                //indicating the start of program
 
 }//end of void setup
@@ -103,10 +107,19 @@ void loop() {
     speakerToneThree(); //indicating change in mode
     rgbLed('r'); //color coding the mode, Manual red
     Serial.println("RGB LED color set to red");
-    //setting the inputs
+    while (modeMan) {
+      //Reading from sensors
+      gyroSensor();
+      flexValue = flexSensor();
 
-    gyroSensor();
+      //print the outputs
+      printData();
 
+      //writing the values into servos
+      setServos();
+
+      delay(50);
+    }
   }
   /* Learning not implemented yet
     else {
@@ -139,7 +152,6 @@ void loop() {
     }
     }
     //Learning not implemented yet */
-  delay(50);
 }//end of void loop
 
 
@@ -158,6 +170,22 @@ void ISR0() {
   attachInterrupt(0, ISR0, RISING);
 }
 
+//print all the outputs from the sensors
+void printData() {
+  // Print the unmapped values on the serial monitor
+  Serial.print(roll);
+  Serial.print("/");
+  Serial.print(pitch);
+  Serial.print("/");
+  Serial.println(yaw);
+  //printing the resuts
+  Serial.print("roll = " );        Serial.print(gyroValues.roll);
+  Serial.print(" | pitchOne = " ); Serial.print(gyroValues.pitchOne);
+  Serial.print(" | pitchTwo = " ); Serial.print(gyroValues.pitchTwo);
+  Serial.print(" | yaw = " );      Serial.print(gyroValues.yaw);
+  Serial.print(" | flex = " );     Serial.print(flexValue);
+  Serial.println("\n\n");
+}
 //flex sensor input method
 int flexSensor() {
   int flexInput = analogRead(flexPin);
@@ -165,7 +193,7 @@ int flexSensor() {
 }
 //Gyroscope Sensor input method
 void gyroSensor() {
- // === Read acceleromter data === //
+  //Read acceleromter data
   Wire.beginTransmission(MPU);
   Wire.write(0x3B); // Start with register 0x3B (ACCEL_XOUT_H)
   Wire.endTransmission(false);
@@ -178,7 +206,7 @@ void gyroSensor() {
   accAngleX = (atan(AccY / sqrt(pow(AccX, 2) + pow(AccZ, 2))) * 180 / PI) - 0.58; // AccErrorX ~(0.58) See the calculate_IMU_error()custom function for more details
   accAngleY = (atan(-1 * AccX / sqrt(pow(AccY, 2) + pow(AccZ, 2))) * 180 / PI) + 1.58; // AccErrorY ~(-1.58)
 
-  // === Read gyroscope data === //
+  //Read gyroscope data
   previousTime = currentTime;        // Previous time is stored before the actual time read
   currentTime = millis();            // Current time actual time read
   elapsedTime = (currentTime - previousTime) / 1000; // Divide by 1000 to get seconds
@@ -189,46 +217,53 @@ void gyroSensor() {
   GyroX = (Wire.read() << 8 | Wire.read()) / 131.0; // For a 250deg/s range we have to divide first the raw value by 131.0, according to the datasheet
   GyroY = (Wire.read() << 8 | Wire.read()) / 131.0;
   GyroZ = (Wire.read() << 8 | Wire.read()) / 131.0;
-  // Correct the outputs with the calculated error values
-  GyroX = GyroX + 2.58; // GyroErrorX ~(-0.56)
-  GyroY = GyroY - 0.64; // GyroErrorY ~(2)
-  GyroZ = GyroZ + 0.21; // GyroErrorZ ~ (-0.8)
+  // Correcting the outputs with the calculated error values
+  GyroX = GyroX - GyroErrorX; // GyroErrorX
+  GyroY = GyroY - GyroErrorY; // GyroErrorY
+  GyroZ = GyroZ - GyroErrorX; // GyroErrorZ
 
   // Currently the raw values are in degrees per seconds, deg/s, so we need to multiply by sendonds (s) to get the angle in degrees
   gyroAngleX = gyroAngleX + GyroX * elapsedTime; // deg/s * s = deg
   gyroAngleY = gyroAngleY + GyroY * elapsedTime;
-  gyroValues.yaw =  gyroValues.yaw + GyroZ * elapsedTime;
+  yaw =  yaw + GyroZ * elapsedTime;
 
   // Complementary filter - combine acceleromter and gyro angle values
-  gyroValues.roll = 0.96 * gyroAngleX + 0.04 * accAngleX;
-  gyroValues.pitch = 0.96 * gyroAngleY + 0.04 * accAngleY;
+  roll = 0.96 * gyroAngleX + 0.04 * accAngleX;
+  pitch = 0.96 * gyroAngleY + 0.04 * accAngleY;
 
-  // Print the values on the serial monitor
-  Serial.print(gyroValues.roll);
-  Serial.print("/");
-  Serial.print(gyroValues.pitch);
-  Serial.print("/");
-  Serial.println(gyroValues.yaw);
-
-  Serial.print("roll = " ); Serial.print( map (gyroValues.roll, -100, 100, 0, 180));
-  Serial.print(" | pitch = " ); Serial.print( map (gyroValues.pitch, -100, 100, 0, 180));
-  Serial.print(" | yaw = " ); Serial.print( map (gyroValues.yaw, -100, 100, 0, 180));
-  Serial.println("\n=======================================================\n");
-  delay(100);
+  //mapping the values for servo motors
+  gyroValues.roll  =  map (roll,  -100, 100, 0, 180);
+  gyroValues.yaw   =  map (yaw,   -100, 100, 0, 180);
+  if (pitch <= 50 && pitch >= -50) {
+    gyroValues.pitchOne = map (pitch, -50, 50, 0, 180);
+  } else {
+    int temp = pitch;
+    if (temp > 50) {
+      temp -= 50;
+    } else {
+      temp += 50;
+    }
+    gyroValues.pitchTwo = map (temp, -50, 50, 0, 180);
+  }
+  delay(50);
 }
 
 //set the values from the sensors into the servos
-void setServo() {
- 
+void setServos() {
+  servos[0].write(gyroValues.yaw);       //base servo
+  servos[1].write(gyroValues.pitchOne);  //node one
+  servos[2].write(gyroValues.pitchTwo);  //node two
+  servos[3].write(gyroValues.roll);      //claw tilt
+  servos[4].write(flexValue);            //claw
 }
 
 //this method will calculate the error in the readings from the gyroscope sensor.
-//The outputs from this function should be change by the error in the gyroSensor() method
 void calculate_IMU_error() {
-  // We can call this funtion in the setup section to calculate the accelerometer and gyro data error. From here we will get the error values used in the above equations printed on the Serial Monitor.
-  // Note that we should place the IMU flat in order to get the proper values, so that we then can the correct values
-  // Read accelerometer values 200 times
-  while (c < 200) {
+  // We can call this funtion in the setup section to calculate the accelerometer and gyro data error.
+  // Note that we should place the IMU flat in order to get the proper values, so that we then can the correct values.
+
+  // Read accelerometer values 300 times
+  while (errorCounter < 300) {
     Wire.beginTransmission(MPU);
     Wire.write(0x3B);
     Wire.endTransmission(false);
@@ -239,14 +274,14 @@ void calculate_IMU_error() {
     // Sum all readings
     AccErrorX = AccErrorX + ((atan((AccY) / sqrt(pow((AccX), 2) + pow((AccZ), 2))) * 180 / PI));
     AccErrorY = AccErrorY + ((atan(-1 * (AccX) / sqrt(pow((AccY), 2) + pow((AccZ), 2))) * 180 / PI));
-    c++;
+    errorCounter++;
   }
-  //Divide the sum by 200 to get the error value
-  AccErrorX = AccErrorX / 200;
-  AccErrorY = AccErrorY / 200;
-  c = 0;
-  // Read gyro values 200 times
-  while (c < 200) {
+  //Divide the sum by 300 to get the error value
+  AccErrorX = AccErrorX / 300;
+  AccErrorY = AccErrorY / 300;
+  errorCounter = 0;
+  // Read gyro values 300 times
+  while (errorCounter < 300) {
     Wire.beginTransmission(MPU);
     Wire.write(0x43);
     Wire.endTransmission(false);
@@ -258,23 +293,12 @@ void calculate_IMU_error() {
     GyroErrorX = GyroErrorX + (GyroX / 131.0);
     GyroErrorY = GyroErrorY + (GyroY / 131.0);
     GyroErrorZ = GyroErrorZ + (GyroZ / 131.0);
-    c++;
+    errorCounter++;
   }
   //Divide the sum by 200 to get the error value
-  GyroErrorX = GyroErrorX / 200;
-  GyroErrorY = GyroErrorY / 200;
-  GyroErrorZ = GyroErrorZ / 200;
-  // Print the error values on the Serial Monitor
-  Serial.print("AccErrorX: ");
-  Serial.println(AccErrorX);
-  Serial.print("AccErrorY: ");
-  Serial.println(AccErrorY);
-  Serial.print("GyroErrorX: ");
-  Serial.println(GyroErrorX);
-  Serial.print("GyroErrorY: ");
-  Serial.println(GyroErrorY);
-  Serial.print("GyroErrorZ: ");
-  Serial.println(GyroErrorZ);
+  GyroErrorX = GyroErrorX / 300;
+  GyroErrorY = GyroErrorY / 300;
+  GyroErrorZ = GyroErrorZ / 300;
 }
 
 //a method for the rgb led color settings
