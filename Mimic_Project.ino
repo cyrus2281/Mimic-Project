@@ -5,7 +5,7 @@
 //Declaring the I/O pins
 #define speakerPin  3   //the pin for the piezo speaker(PMW)
 #define ledRedPin   4   //RGB led pins (red)
-#define ledGreenPin 7   //RGB led pins (green)
+#define ledGreenPin a 7   //RGB led pins (green)
 #define ledBluePin  8   //RGB led pins (blue)
 
 #define flexPin A0   //Flux sensor pin (analog)
