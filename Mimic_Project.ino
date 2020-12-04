@@ -5,7 +5,7 @@
 //Declaring the I/O pins
 #define speakerPin  3   //the pin for the piezo speaker(PMW)
 #define ledRedPin   4   //RGB led pins (red)
-#define ledGreenPin a 7   //RGB led pins (green)
+#define ledGreenPin 7   //RGB led pins (green)
 #define ledBluePin  8   //RGB led pins (blue)
 
 #define flexPin A0   //Flux sensor pin (analog)
@@ -17,12 +17,12 @@ volatile boolean modeMan = true;    //this switch mode between manual and learni
 boolean modeAuto = false;           //this switch mode between learning and auto
 
 //delays
-const int learningPause = 40;  //this is the amount of delay between each learning
-const int autoPause = 10;      //this is the amount of delay between each auto perform
+const int learningPause = 50;  //this is the amount of delay between each learning
+const int autoPause = 30;      //this is the amount of delay between each auto perform
 
 //learning configuration
-const int numberOfServos = 4 ;                   //this is the number of servos used in the arm
-const int numberOfRecordings = 250;              //the number of learn values for each motor.
+const int numberOfServos = 5 ;                  //this is the number of servos used in the arm
+const int numberOfRecordings = 70;              //the number of learn values for each motor.
 //numberOfRecordings*learningPause= total miliseconds of learning length
 int learnt[numberOfServos][numberOfRecordings];  //an array that stores the moves for all the motors in the given tries
 const int learntDefault = 45;                    //default value for learnt
@@ -100,6 +100,7 @@ void setup() {
 
 }//end of void setup
 
+
 void loop() {
   //------------------------------------------------------------------------
   //Manual Mode
@@ -107,6 +108,8 @@ void loop() {
     speakerToneThree(); //indicating change in mode
     rgbLed('r'); //color coding the mode, Manual red
     Serial.println("RGB LED color set to red");
+
+    //starting the loop
     while (modeMan) {
       //Reading from sensors
       gyroSensor();
@@ -121,37 +124,47 @@ void loop() {
       delay(50);
     }
   }
-  /* Learning not implemented yet
-    else {
+  else {
     //----------------------------------------------------------------------
     //Automatic Mode
     if (modeAuto) {
-    speakerToneThree(); //indicating change in mode
-    rgbLed('b'); //color coding the mode, auto blue
-    Serial.println("RGB LED color set to blue");
-    //mimicing what was previously learnt
-    for ( int counter = 0; counter < numberOfRecordings; counter++) {
-      //setting the inputs
-      delay(autoPause);
-    }
+      speakerToneThree(); //indicating change in mode
+      rgbLed('b'); //color coding the mode, auto blue
+      Serial.println("RGB LED color set to blue");
+      //mimicing what was previously learnt
+      for ( int counter = 0; counter < numberOfRecordings; counter++) {
+        //setting the inputs
+        delay(autoPause);
+      }
     }
     //-----------------------------------------------------------------------
     //Learning Mode
     else {
-    speakerToneThree(); //indicating change in mode
-    rgbLed('g'); //color coding the mode, learning green
-    Serial.println("RGB LED color set to green");
-    //starting the learning
-    for ( int counter = 0; counter < numberOfRecordings; counter++) {
-      //getting the inputs
-      delay(learningPause);
+      speakerToneThree(); //indicating change in mode
+      rgbLed('g'); //color coding the mode, learning green
+      Serial.println("RGB LED color set to green");
+      //starting the learning
+      for (int counter = 0; counter < numberOfRecordings; counter++) {
+        //Reading from sensors
+        gyroSensor();
+        flexValue = flexSensor();
+
+        //print the outputs
+        printData();
+
+        //save tha data
+        learnValues(counter);
+
+        //writing the values into servos
+        setServos();
+
+        delay(learningPause);
+      }
+      speakerToneTwo(); //speaker indicating the learning is over
+      modeAuto = true;
+      delay(3000);
     }
-    speakerToneTwo(); //speaker indicating the learning is over
-    modeAuto = true;
-    delay(3000);
-    }
-    }
-    //Learning not implemented yet */
+  }
 }//end of void loop
 
 
@@ -246,6 +259,15 @@ void gyroSensor() {
     gyroValues.pitchTwo = map (temp, -50, 50, 0, 180);
   }
   delay(50);
+}
+
+//this method will write the final output from the sensors to an array
+void learnValues(int number) { //the input is the counter from the loop
+  learnt[0][number] = gyroValues.yaw;       //base servo
+  learnt[1][number] = gyroValues.pitchOne;  //node one
+  learnt[2][number] = gyroValues.pitchTwo;  //node two
+  learnt[3][number] = gyroValues.roll;      //claw tilt
+  learnt[4][number] = flexValue;            //claw
 }
 
 //set the values from the sensors into the servos
