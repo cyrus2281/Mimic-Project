@@ -3,17 +3,18 @@
 #include <Wire.h>
 
 //Declaring the I/O pins
-#define speakerPin  3   //the pin for the piezo speaker(PMW)
-#define ledRedPin   4   //RGB led pins (red)
-#define ledGreenPin 7   //RGB led pins (green)
-#define ledBluePin  8   //RGB led pins (blue)
+#define speakerPin  3     //the pin for the piezo speaker(PMW)
+#define ledRedPin   4     //RGB led pins (red)
+#define ledGreenPin 7     //RGB led pins (green)
+#define ledBluePin  8     //RGB led pins (blue)
+#define interruptButton 2 //this button will change the mode
 
 #define flexPin A0   //Flux sensor pin (analog)
 
 int flexValue;
 
 //The arm's mode {Manual mode, Learning mode, auto mode}
-volatile boolean modeMan = !true;    //this switch mode between manual and learning
+volatile boolean modeMan = true;    //this switch mode between manual and learning
 boolean modeAuto = false;           //this switch mode between learning and auto
 
 //delays
@@ -54,7 +55,6 @@ float yaw, roll, pitch;                                         //the final outp
 int errorCounter = 0;                                           //a variable that holds the number of test runs
 
 
-
 void setup() {
   //Starting serial communications
   Serial.begin(19200);
@@ -65,7 +65,10 @@ void setup() {
   pinMode(ledRedPin,   OUTPUT);
   pinMode(ledGreenPin, OUTPUT);
   pinMode(ledBluePin,  OUTPUT);
+  pinMode(interruptButton, INPUT_PULLUP); //pull will attach the internal resitance
 
+  //color coding the mode, starting white
+  rgbLed('w');
   //Attaching servo pin
   for (int i = 0; i < sizeof(servoPins); i++) {
     servos[i].attach(servoPins[i]);
@@ -94,7 +97,7 @@ void setup() {
       learnt[i][j] = learntDefault;
     }
   }
-  //attachInterrupt(0, ISR0, RISING); //attaching an interrupt for changing mode
+  attachInterrupt(0, ISR0, RISING); //attaching an interrupt for changing mode
   Serial.println("Ready!");
   speakerToneOne();                //indicating the start of program
 
@@ -172,13 +175,14 @@ void ISR0() {
   detachInterrupt(0); //turning off the interrupt
   if (modeMan) {
     modeMan = false;         //setting the mode from manual to learning
-    Serial.println("Set mode to learning");
+    modeAuto = false;     //set the mode auto off
+    Serial.println("\n@@@@@@@@@@@@@@@@\nSet mode to learning\n@@@@@@@@@@@@@@@@");
   } else {
     modeMan = true;       //set the mode from learning to manual
     modeAuto = false;     //set the mode auto off
-    Serial.println("Set mode to manual");
+    Serial.println("\n################\nSet mode to manual\n################");
   }
-  delay(100);
+  delay(300);
   attachInterrupt(0, ISR0, RISING);
 }
 
@@ -200,7 +204,7 @@ void printData() {
 }
 //this method will print values from learnt values
 void autoPrint(int number) {
-  Serial.print("\nLearnt Values");
+  Serial.print("\nLearnt Values: ");
   Serial.print("roll = " );        Serial.print(learnt[3][number]);
   Serial.print(" | pitchOne = " ); Serial.print(learnt[1][number]);
   Serial.print(" | pitchTwo = " ); Serial.print(learnt[2][number]);
@@ -300,7 +304,7 @@ void autoSetServos(int number) {
 void calculate_IMU_error() {
   // We can call this funtion in the setup section to calculate the accelerometer and gyro data error.
   // Note that we should place the IMU flat in order to get the proper values, so that we then can the correct values.
-
+  errorCounter = 0;
   // Read accelerometer values 300 times
   while (errorCounter < 300) {
     Wire.beginTransmission(MPU);
@@ -354,6 +358,11 @@ void rgbLed(char color) {
       break;
     case 'b':
       digitalWrite(ledBluePin, HIGH);
+      break;
+    case 'w':
+      digitalWrite(ledBluePin, HIGH);
+      digitalWrite(ledGreenPin, HIGH);
+      digitalWrite(ledRedPin, HIGH);
       break;
   }
 }
