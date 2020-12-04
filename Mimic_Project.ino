@@ -13,13 +13,13 @@
 int flexValue;
 
 //The arm's mode {Manual mode, Learning mode, auto mode}
-volatile boolean modeMan = true;    //this switch mode between manual and learning
+volatile boolean modeMan = !true;    //this switch mode between manual and learning
 boolean modeAuto = false;           //this switch mode between learning and auto
 
 //delays
-const int learningPause = 50;  //this is the amount of delay between each learning
-const int autoPause = 30;      //this is the amount of delay between each auto perform
-
+const int learningPause = 50;  //this is the amount of delay between each learning set
+const int autoPause = 30;      //this is the amount of delay between each auto set
+const int ManPause = 50;       //this is the amount of delay between each manual set
 //learning configuration
 const int numberOfServos = 5 ;                  //this is the number of servos used in the arm
 const int numberOfRecordings = 70;              //the number of learn values for each motor.
@@ -105,41 +105,44 @@ void loop() {
   //------------------------------------------------------------------------
   //Manual Mode
   if (modeMan) {
+    Serial.print("****************\n* Manual Mode  *\n****************");
     speakerToneThree(); //indicating change in mode
     rgbLed('r'); //color coding the mode, Manual red
     Serial.println("RGB LED color set to red");
-
     //starting the loop
     while (modeMan) {
       //Reading from sensors
       gyroSensor();
       flexValue = flexSensor();
-
       //print the outputs
       printData();
-
       //writing the values into servos
       setServos();
-
-      delay(50);
+      delay(ManPause);
     }
   }
   else {
     //----------------------------------------------------------------------
     //Automatic Mode
     if (modeAuto) {
+      Serial.print("****************\n*  Auto Mode   *\n****************");
       speakerToneThree(); //indicating change in mode
       rgbLed('b'); //color coding the mode, auto blue
       Serial.println("RGB LED color set to blue");
       //mimicing what was previously learnt
       for ( int counter = 0; counter < numberOfRecordings; counter++) {
-        //setting the inputs
+        //writing the learnt values to motors
+        autoPrint(counter);
+        //writing the learnt values to the motors
+        autoSetServos(counter);
         delay(autoPause);
       }
+      delay(1000);
     }
     //-----------------------------------------------------------------------
     //Learning Mode
     else {
+      Serial.print("****************\n* Learning Mode*\n****************");
       speakerToneThree(); //indicating change in mode
       rgbLed('g'); //color coding the mode, learning green
       Serial.println("RGB LED color set to green");
@@ -148,16 +151,12 @@ void loop() {
         //Reading from sensors
         gyroSensor();
         flexValue = flexSensor();
-
         //print the outputs
         printData();
-
         //save tha data
         learnValues(counter);
-
         //writing the values into servos
         setServos();
-
         delay(learningPause);
       }
       speakerToneTwo(); //speaker indicating the learning is over
@@ -199,6 +198,17 @@ void printData() {
   Serial.print(" | flex = " );     Serial.print(flexValue);
   Serial.println("\n\n");
 }
+//this method will print values from learnt values
+void autoPrint(int number) {
+  Serial.print("\nLearnt Values");
+  Serial.print("roll = " );        Serial.print(learnt[3][number]);
+  Serial.print(" | pitchOne = " ); Serial.print(learnt[1][number]);
+  Serial.print(" | pitchTwo = " ); Serial.print(learnt[2][number]);
+  Serial.print(" | yaw = " );      Serial.print(learnt[0][number]);
+  Serial.print(" | flex = " );     Serial.print(learnt[4][number]);
+  Serial.println("\n");
+}
+
 //flex sensor input method
 int flexSensor() {
   int flexInput = analogRead(flexPin);
@@ -278,7 +288,14 @@ void setServos() {
   servos[3].write(gyroValues.roll);      //claw tilt
   servos[4].write(flexValue);            //claw
 }
-
+//this method will write the learnt values to servo motors
+void autoSetServos(int number) {
+  servos[0].write(learnt[0][number]);       //base servo
+  servos[1].write(learnt[1][number]);  //node one
+  servos[2].write(learnt[2][number]);  //node two
+  servos[3].write(learnt[3][number]);      //claw tilt
+  servos[4].write(learnt[4][number]);            //claw
+}
 //this method will calculate the error in the readings from the gyroscope sensor.
 void calculate_IMU_error() {
   // We can call this funtion in the setup section to calculate the accelerometer and gyro data error.
