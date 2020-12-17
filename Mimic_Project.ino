@@ -3,11 +3,11 @@
 #include <Wire.h>
 
 //Declaring the I/O pins
-#define speakerPin  3     //the pin for the piezo speaker(PMW)
+#define speakerPin  4     //the pin for the piezo speaker(PMW)
 #define ledRedPin   4     //RGB led pins (red)
 #define ledGreenPin 7     //RGB led pins (green)
 #define ledBluePin  8     //RGB led pins (blue)
-#define interruptButton 2 //this button will change the mode
+#define interruptButton 3 //this button will change the mode
 
 #define flexPin A0   //Flux sensor pin (analog)
 
@@ -19,7 +19,7 @@ boolean modeAuto = false;           //this switch mode between learning and auto
 
 //delays
 const int learningPause = 50;  //this is the amount of delay between each learning set
-const int autoPause = 30;      //this is the amount of delay between each auto set
+const int autoPause = 40;      //this is the amount of delay between each auto set
 const int ManPause = 50;       //this is the amount of delay between each manual set
 //learning configuration
 const int numberOfServos = 5 ;                  //this is the number of servos used in the arm
@@ -97,7 +97,7 @@ void setup() {
       learnt[i][j] = learntDefault;
     }
   }
-  attachInterrupt(0, ISR0, RISING); //attaching an interrupt for changing mode
+  attachInterrupt(1, ISR0, RISING); //attaching an interrupt for changing mode
   Serial.println("Ready!");
   speakerToneOne();                //indicating the start of program
 
