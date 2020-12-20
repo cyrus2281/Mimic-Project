@@ -34,10 +34,10 @@
 
 
 //Declaring the I/O pins
-#define speakerPin  4     //the pin for the piezo speaker(PMW)
+#define speakerPin  13     //the pin for the piezo speaker(PMW)
 #define ledRedPin   4     //RGB led pins (red)
-#define ledGreenPin 7     //RGB led pins (green)
-#define ledBluePin  8     //RGB led pins (blue)
+#define ledGreenPin 5     //RGB led pins (green)
+#define ledBluePin  61`Q2     //RGB led pins (blue)
 #define interruptButton 3 //this button will change the mode
 
 #define flexPin A0   //Flux sensor pin (analog)
@@ -397,7 +397,7 @@ void gyroSensor() {
   roll = ypr[2] * 180 / M_PI;
   //mapping the values for servo motors
   gyroValues.roll  =  map (roll,  -80, 80, 0, 180);
-  gyroValues.yaw   =  (180-map (yaw,   -180, 180, 0, 180));
+  gyroValues.yaw   =  map (yaw,   -180, 180, 0, 180);
  gyroValues.pitchOne =(180- map (pitch, -80, 80, 0, 180));
   /*
   if (pitch <= 40 && pitch >= -40) {
@@ -480,6 +480,7 @@ void rgbLed(char color) {
       digitalWrite(ledRedPin, HIGH);
       break;
   }
+  delay(50);
 }
 //tone one ( ..-)
 void speakerToneOne() {
