@@ -21,17 +21,25 @@ void setup() {
 }
 
 void loop() {
-  for ( pos ; pos <= maxDeg; pos += 1) {    //goes to maximum
-    // in steps of 1 degree
+       /*                                     
+    for ( pos ; pos <= maxDeg; pos += 1) {    //goes to maximum
+    //in steps of 1 degree
     myservo.write(pos);
     Serial.println(pos);
     delay(shortDelay);
-  }
-  delay(longDelay);
-  for ( pos; pos >= minDeg; pos -= 1) { //goes to minimum
+    }
+    delay(longDelay);
+    for ( pos; pos >= minDeg; pos -= 1) { //goes to minimum
     myservo.write(pos);
     Serial.println(pos);
     delay(shortDelay);
-  }
-  delay(longDelay);
+    }
+    delay(longDelay);
+
+*/
+    myservo.write(0);
+    delay(3000);
+    myservo.write(180);
+    delay(3000);
+    ;//
 }

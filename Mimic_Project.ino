@@ -33,6 +33,8 @@ Servo servos[5];     //[0]:base servo (horizental move), [1]:first node (vertica
 //[3]: claw tilt (horizental move) [4]:claw servo (horizental move)
 int servoPins[] = {11, 10, 9, 6, 5};
 
+const double ratioAngles = 0.67;        //the min/max angle ratio between the servos 2 and 3 (should be customized)
+
 //The structure for the final outputs of gyroscope sensor
 struct gyroSensor {
   float roll;
@@ -270,9 +272,16 @@ void gyroSensor() {
     } else {
       temp += 50;
     }
-    gyroValues.pitchTwo = map (temp, -50, 50, 0, 180);
+    //0 to 60 because the second angle doesn't need to open all the way
+    int pitchTwoTemp = map (temp, -50, 50, 0, 60);
+    gyroValues.pitchTwo = ratio(pitchTwoTemp,gyroValues.pitchOne);
   }
   delay(50);
+}
+
+//this function will make sure of the ratio of angles between servo 2 and 3
+int ratio(int inner, int outer){ //this function should be customized based on your structure
+  return int((outer*ratioAngles)+inner);            //0.67 is the ratio of angles between the two motors
 }
 
 //this method will write the final output from the sensors to an array

@@ -8,7 +8,7 @@ Servo myservoOne;  // create servo object to control a servo
 Servo myservoTwo;  // create servo object to control a servo
 
 int servoOnePin = 11;     // the first servo I/O pin
-int servoTwoPin = 10;     // the second servo I/O pin
+int servoTwoPin = 6;     // the second servo I/O pin
 
 int firstStartDeg = 150;    // variable to store the starting position for the first servo
 int firstMaxDeg = 170;     // variable to store the maximum position for the first servo
