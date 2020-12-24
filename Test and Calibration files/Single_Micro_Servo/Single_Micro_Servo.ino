@@ -6,10 +6,10 @@
 
 Servo myservo;  // create servo object to control a servo
 
-int servoPin = 11;     // the servo I/O pin
+int servoPin = 9;     // the servo I/O pin
 int startDeg = 70;    // variable to store the starting position
-int maxDeg = 100;     // variable to store the maximum position
-int minDeg = 40;       // variable to store the minimum position
+int maxDeg = 90;     // variable to store the maximum position
+int minDeg = 60;       // variable to store the minimum position
 
 int shortDelay = 20;  // the dealy between the positions
 int longDelay = 2000; // the delay between the loops
@@ -21,7 +21,7 @@ void setup() {
 }
 
 void loop() {
-       /*                                     
+                                        
     for ( pos ; pos <= maxDeg; pos += 1) {    //goes to maximum
     //in steps of 1 degree
     myservo.write(pos);
@@ -36,10 +36,10 @@ void loop() {
     }
     delay(longDelay);
 
-*/
+/*
     myservo.write(0);
     delay(3000);
     myservo.write(180);
     delay(3000);
-    ;//
+    ;*/
 }

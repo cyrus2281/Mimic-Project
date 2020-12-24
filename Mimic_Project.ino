@@ -1,5 +1,10 @@
 
 /* ============================================
+ ***  Last Modified: 24/12/2020 ***
+   
+ ***  Milad Mobini (Github: Milad200281)  ***
+   
+
   I2Cdev device library code is placed under the MIT license
   Copyright (c) 2012 Jeff Rowberg
 
@@ -37,7 +42,7 @@
 #define speakerPin  13     //the pin for the piezo speaker(PMW)
 #define ledRedPin   4     //RGB led pins (red)
 #define ledGreenPin 5     //RGB led pins (green)
-#define ledBluePin  61`Q2     //RGB led pins (blue)
+#define ledBluePin  6     //RGB led pins (blue)
 #define interruptButton 3 //this button will change the mode
 
 #define flexPin A0   //Flux sensor pin (analog)
@@ -340,7 +345,7 @@ void autoPrint(int number) {
 //flex sensor input method
 int flexSensor() {
   int flexInput = analogRead(flexPin);
-  return map(flexInput, 800, 1023, 0, 179);
+  return map(flexInput, 850, 1023, 60, 90);
 }
 //Gyroscope Sensor input method
 void gyroSensor() {
