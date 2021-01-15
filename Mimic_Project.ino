@@ -1,9 +1,10 @@
 
+
 /* ============================================
  ***  Last Modified: 24/12/2020 ***
-   
+
  ***  Milad Mobini (Github: Milad200281)  ***
-   
+
 
   I2Cdev device library code is placed under the MIT license
   Copyright (c) 2012 Jeff Rowberg
@@ -30,10 +31,11 @@
 
 
 //libraries
-#include <Servo.h>
+//#include <Servo.h>
 #include <Wire.h>
 #include "I2Cdev.h"
 #include "MPU6050_6Axis_MotionApps20.h"
+#include <VarSpeedServo.h>
 
 
 
@@ -65,10 +67,11 @@ int learnt[numberOfServos][numberOfRecordings];  //an array that stores the move
 const int learntDefault = 45;                    //default value for learnt
 
 //servo motor configurations
-Servo servos[5];     //[0]:base servo (horizental move), [1]:first node (vertical move), [2]:second node (verrical move),
-//[3]: claw tilt (horizental move) [4]:claw servo (horizental move)
-int servoPins[] = {11, 10, 9, 8, 7};
-Servo servo;
+VarSpeedServo servo;
+VarSpeedServo servos[4];     //[0]:base servo (horizental move), [1]:first node (vertical move), [2]:second node (verrical move),
+// [3]:claw servo (horizental move)  (Not Availalbe)[4]: claw tilt (horizental move)
+int servoPins[] = {12, 11, 10, 9, 8};
+int servoSpeed = 60;
 const double ratioAngles = 0.67;        //the min/max angle ratio between the servos 2 and 3 (should be customized)
 //variables to hold values
 int yaw = 0;
@@ -107,7 +110,7 @@ VectorFloat gravity;    // [x, y, z]            gravity vector
 float ypr[3];           // [yaw, pitch, roll]   yaw/pitch/roll container and gravity vector
 
 // packet structure for InvenSense teapot demo
-uint8_t teapotPacket[14] = { '$', 0x02, 0,0, 0,0, 0,0, 0,0, 0x00, 0x00, '\r', '\n' };
+uint8_t teapotPacket[14] = { '$', 0x02, 0, 0, 0, 0, 0, 0, 0, 0, 0x00, 0x00, '\r', '\n' };
 
 
 
@@ -137,8 +140,8 @@ void setup() {
   //color coding the mode, starting white
   rgbLed('w');
   //Attaching servo pin
-  servo.attach(12);
-  for (int i = 0; i < sizeof(servoPins); i++) {
+ // servos[0].attach(12);
+  for (int i = 0; i < 4; i++) {
     servos[i].attach(servoPins[i]);
   }
 
@@ -159,20 +162,20 @@ void setup() {
 
 
   //Setting up the gyroscope sensor
-// initialize device
+  // initialize device
   Serial.println(F("Initializing I2C devices..."));
   mpu.initialize();
 
   // verify connection
   Serial.println(F("Testing device connections..."));
   Serial.println(mpu.testConnection() ? F("MPU6050 connection successful") : F("MPU6050 connection failed"));
-   /*
-  // wait for ready
-  Serial.println(F("\nSend any character to begin DMP programming and demo: "));
-  while (Serial.available() && Serial.read()); // empty buffer
-  while (!Serial.available());                 // wait for data
-  while (Serial.available() && Serial.read()); // empty buffer again
-   */
+  /*
+    // wait for ready
+    Serial.println(F("\nSend any character to begin DMP programming and demo: "));
+    while (Serial.available() && Serial.read()); // empty buffer
+    while (!Serial.available());                 // wait for data
+    while (Serial.available() && Serial.read()); // empty buffer again
+  */
   // load and configure the DMP
   Serial.println(F("Initializing DMP..."));
   devStatus = mpu.dmpInitialize();
@@ -201,7 +204,7 @@ void setup() {
     // get expected DMP packet size for later comparison
     packetSize = mpu.dmpGetFIFOPacketSize();
   } else {
-    // ERROR! 
+    // ERROR!
     // 1 = initial memory load failed
     // 2 = DMP configuration updates failed
     // (if it's going to break, usually the code will be 1)
@@ -252,7 +255,7 @@ void loop() {
         autoSetServos(counter);
         delay(autoPause);
       }
-      delay(1000);
+      delay(400);
     }
     //-----------------------------------------------------------------------
     //Learning Mode
@@ -345,7 +348,8 @@ void autoPrint(int number) {
 //flex sensor input method
 int flexSensor() {
   int flexInput = analogRead(flexPin);
-  return map(flexInput, 850, 1023, 60, 90);
+  return map(flexInput, 95.
+  0, 1023, 60, 90);
 }
 //Gyroscope Sensor input method
 void gyroSensor() {
@@ -402,12 +406,13 @@ void gyroSensor() {
   roll = ypr[2] * 180 / M_PI;
   //mapping the values for servo motors
   gyroValues.roll  =  map (roll,  -80, 80, 0, 180);
-  gyroValues.yaw   =  map (yaw,   -180, 180, 0, 180);
- gyroValues.pitchOne =(180- map (pitch, -80, 80, 0, 180));
+  gyroValues.yaw   = (180 - map (yaw,   -180, 180, 0, 180));
+  gyroValues.pitchOne = (180 - map (pitch, -80, 80, 0, 180));
   /*
-  if (pitch <= 40 && pitch >= -40) {
+    //pitch can be split into 2 angles so a fifth servo can be added
+    if (pitch <= 40 && pitch >= -40) {
     gyroValues.pitchOne =(180- map (pitch, -40, 40, 0, 180));
-  } else {
+    } else {
     int temp = pitch;
     if (temp > 40) {
       temp -= 40;
@@ -417,7 +422,7 @@ void gyroSensor() {
     //0 to 60 because the second angle doesn't need to open all the way
     int pitchTwoTemp = map (temp, -40, 40, 0, 60);
     gyroValues.pitchTwo = ratio(pitchTwoTemp, gyroValues.pitchOne);
-  }
+    }
 
   */
   delay(50);
@@ -432,7 +437,7 @@ int ratio(int inner, int outer) { //this function should be customized based on 
 void learnValues(int number) { //the input is the counter from the loop
   learnt[0][number] = gyroValues.yaw;       //base servo
   learnt[1][number] = gyroValues.pitchOne;  //node one
-  learnt[2][number] = gyroValues.pitchTwo;  //node two
+  //learnt[2][number] = gyroValues.pitchTwo;  //node two
   learnt[3][number] = gyroValues.roll;      //claw tilt
   learnt[4][number] = flexValue;            //claw
 }
@@ -443,27 +448,26 @@ void learnValues(int number) { //the input is the counter from the loop
 
 //set the values from the sensors into the servos
 void setServos() {
-  servo.write(gyroValues.yaw);
-  servos[5].write(gyroValues.yaw);       //base servo
-  servos[1].write(gyroValues.pitchOne);  //node one
-  servos[2].write(gyroValues.pitchTwo);  //node two
-  servos[3].write(gyroValues.roll);      //claw tilt
-  servos[4].write(flexValue);            //claw
+  servos[0].write(gyroValues.yaw, servoSpeed);       //base servo
+  servos[1].write(gyroValues.pitchOne, servoSpeed);  //node one
+  servos[2].write(gyroValues.roll, servoSpeed);      //node twon (claw tilt)
+  servos[3].write(flexValue);                        //claw
+  //servos[4].write(gyroValues.pitchTwo, servoSpeed);//claw tilt (node two)
 }
 //this method will write the learnt values to servo motors
 void autoSetServos(int number) {
-    servo.write(learnt[0][number]);
-  servos[0].write(learnt[0][number]);       //base servo
-  servos[1].write(learnt[1][number]);  //node one
-  servos[2].write(learnt[2][number]);  //node two
-  servos[3].write(learnt[3][number]);      //claw tilt
-  servos[4].write(learnt[4][number]);            //claw
+
+  servos[0].write(learnt[0][number], servoSpeed);  //base servo
+  servos[1].write(learnt[1][number], servoSpeed);  //node one
+  servos[2].write(learnt[3][number], servoSpeed);  //node two
+  servos[3].write(learnt[4][number]);  //claw
+  //servos[4].write(learnt[4][number], servoSpeed);  //claw tilt
 }
 
 // ================================================================
 // ===                    OTHER  METHODS                       ===
 // ================================================================
- 
+
 //a method for the rgb led color settings
 void rgbLed(char color) {
   digitalWrite(ledRedPin, LOW);
