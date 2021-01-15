@@ -67,7 +67,6 @@ int learnt[numberOfServos][numberOfRecordings];  //an array that stores the move
 const int learntDefault = 45;                    //default value for learnt
 
 //servo motor configurations
-VarSpeedServo servo;
 VarSpeedServo servos[4];     //[0]:base servo (horizental move), [1]:first node (vertical move), [2]:second node (verrical move),
 // [3]:claw servo (horizental move)  (Not Availalbe)[4]: claw tilt (horizental move)
 int servoPins[] = {12, 11, 10, 9, 8};
@@ -140,7 +139,6 @@ void setup() {
   //color coding the mode, starting white
   rgbLed('w');
   //Attaching servo pin
- // servos[0].attach(12);
   for (int i = 0; i < 4; i++) {
     servos[i].attach(servoPins[i]);
   }
