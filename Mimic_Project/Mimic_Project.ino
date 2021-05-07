@@ -1,7 +1,7 @@
 
 
 /* ============================================
- ***  Last Modified: 24/12/2020 ***
+ ***  Last Modified: 3/05/2021 ***
 
  ***  Milad Mobini (Github: Milad200281)  ***
 
@@ -346,8 +346,7 @@ void autoPrint(int number) {
 //flex sensor input method
 int flexSensor() {
   int flexInput = analogRead(flexPin);
-  return map(flexInput, 95.
-  0, 1023, 60, 90);
+  return map(flexInput, 950, 1023, 60, 90);
 }
 //Gyroscope Sensor input method
 void gyroSensor() {
@@ -403,9 +402,9 @@ void gyroSensor() {
   pitch = ypr[1] * 180 / M_PI;
   roll = ypr[2] * 180 / M_PI;
   //mapping the values for servo motors
-  gyroValues.roll  =  map (roll,  -80, 80, 0, 180);
-  gyroValues.yaw   = (180 - map (yaw,   -180, 180, 0, 180));
-  gyroValues.pitchOne = (180 - map (pitch, -80, 80, 0, 180));
+  gyroValues.roll  = (180- map (roll,  -80, 80, 0, 180));
+  gyroValues.yaw   = map (yaw,   -180, 180, 0, 180);
+  gyroValues.pitchOne =  map (pitch, -80, 80, 0, 180);
   /*
     //pitch can be split into 2 angles so a fifth servo can be added
     if (pitch <= 40 && pitch >= -40) {

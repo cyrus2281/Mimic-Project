@@ -21,7 +21,7 @@ void setup() {
 }
 
 void loop() {
-                                        
+                   /*                     
     for ( pos ; pos <= maxDeg; pos += 1) {    //goes to maximum
     //in steps of 1 degree
     myservo.write(pos);
@@ -35,11 +35,16 @@ void loop() {
     delay(shortDelay);
     }
     delay(longDelay);
+*/
 
-/*
     myservo.write(0);
+    Serial.println(0);
     delay(3000);
     myservo.write(180);
+    Serial.println(180);
     delay(3000);
-    ;*/
+    myservo.write(90);
+    Serial.println(90);
+    delay(3000);
+ 
 }
